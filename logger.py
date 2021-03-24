@@ -1,2 +1,42 @@
 class Logger:
-    pass
+
+    __instance = None
+
+    def __init__(self):
+        if Logger.__instance:
+            raise Exception('This class is a singleton!')
+
+        self.lexical_errors = []
+        Logger.__instance = self
+
+    @staticmethod
+    def get_instance():
+        if Logger.__instance:
+            return Logger.__instance
+        return Logger()
+
+    def log_lexical_error(self, line, token, err):
+        self.lexical_errors.append((line, token, err))
+
+    def save_lexical_errors(self):
+        log = ''
+        if not self.lexical_errors:
+            log = 'There is no lexical error.'
+        else:
+            for line, token, err in self.lexical_errors:
+                log += f'{line}.\t({token}, {err})\n'
+        with open('output/lexical_errors.txt', 'w') as file:
+            file.write(log)
+
+    def save_symbol_table(self, symbol_table):
+        log = ''
+        for i, lexeme in enumerate(symbol_table):
+            log += f'{i + 1}.\t{lexeme}\n'
+
+    def save_tokens(self, tokens):
+        log = ''
+        for line, token_list in tokens.items():
+            log += f'{line}.\t'
+            for token_type, lexeme in token_list:
+                log += f'({token_type}, {lexeme}) '
+            log += '\n'
