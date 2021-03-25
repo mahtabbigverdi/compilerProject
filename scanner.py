@@ -23,7 +23,7 @@ class Scanner:
     def is_valid(self, character):
         return character.isalpha() or character.isdigit() \
                or character in \
-               [';', ':', '[', ']', '(', ')', '{', '}', '+', '-', '<', ' ', '\n', '\t', '\r', '\f', '\v', '=', '*', '/']
+               [',', ';', ':', '[', ']', '(', ')', '{', '}', '+', '-', '<', ' ', '\n', '\t', '\r', '\f', '\v', '=', '*', '/']
 
     def get_next_token(self):
         end = self.ptr
@@ -80,7 +80,7 @@ class Scanner:
                 return None
 
         # Symbol DFA
-        elif self.prog[self.ptr] in [';', ':', '[', ']', '(', ')', '{', '}', '+', '-', '<']:
+        elif self.prog[self.ptr] in [',', ';', ':', '[', ']', '(', ')', '{', '}', '+', '-', '<']:
             lexeme = self.prog[self.ptr]
             token_type = 'SYMBOL'
             self.ptr += 1
@@ -117,10 +117,12 @@ class Scanner:
                         return 'COMMENT', None
 
                 self.line_no += 1
+                self.ptr = end + 1
                 return 'COMMENT', None
 
             # /* */  comment
-            if not self.is_finished(self.ptr + 1) and self.prog[self.ptr + 1] == '*':
+            elif not self.is_finished(self.ptr + 1) and self.prog[self.ptr + 1] == '*':
+                start_line = self.line_no
                 end = self.ptr + 2
                 while not self.is_finished(end+1):
                     if self.prog[end] == '*' and self.prog[end+1] == '/':
@@ -131,10 +133,13 @@ class Scanner:
                         self.line_no += 1
                     end+=1
 
-                self.logger.log_lexical_error(self.line_no,  self.prog[self.ptr: self.ptr+7] + "...", 'Unclosed comment')
+                self.logger.log_lexical_error(start_line,  self.prog[self.ptr: self.ptr+7] + "...", 'Unclosed comment')
                 self.ptr = end + 1
                 return None
 
+            self.logger.log_lexical_error(self.line_no,  self.prog[self.ptr], 'Invalid input')
+            self.ptr = end + 1
+            return None
 
 
 

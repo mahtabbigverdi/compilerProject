@@ -31,6 +31,7 @@ class Logger:
         else:
             for line, token, err in self.lexical_errors:
                 log += f'{line}.\t({token}, {err})\n'
+            log = log[:-1]
         with open('output/lexical_errors.txt', 'w') as file:
             file.write(log)
 
@@ -38,6 +39,9 @@ class Logger:
         log = ''
         for i, lexeme in enumerate(symbol_table):
             log += f'{i + 1}.\t{lexeme}\n'
+        log = log[:-1]
+        with open('output/symbol_table.txt', 'w') as file:
+            file.write(log)
 
     def save_tokens(self):
         log = ''
@@ -45,4 +49,8 @@ class Logger:
             log += f'{line}.\t'
             for token_type, lexeme in token_list:
                 log += f'({token_type}, {lexeme}) '
+            log = log[:-1]
             log += '\n'
+        log = log[:-1]
+        with open('output/tokens.txt', 'w') as file:
+            file.write(log)
