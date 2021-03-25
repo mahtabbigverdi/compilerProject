@@ -23,9 +23,9 @@ class Compiler:
     def compile(self, path):
         self.read_input(path)
         while True:
-            print(self.scanner.line_no, self.scanner.ptr)
+            # print(self.scanner.line_no, self.scanner.ptr)
             token = self.scanner.get_next_token()
-            print(token)
+            # print(token)
             if token and token[0] not in ['COMMENT', 'WHITESPACE']:
                 self.logger.add_token(self.scanner.line_no, *token)
             if self.scanner.is_finished(self.scanner.ptr):
@@ -37,4 +37,4 @@ class Compiler:
 
 
 if __name__ == '__main__':
-    Compiler().compile('PA1_sample_programs/T10/input.txt')
+    Compiler().compile('PA1_sample_programs/T03/input.txt')

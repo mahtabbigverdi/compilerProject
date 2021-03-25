@@ -132,8 +132,10 @@ class Scanner:
                     if self.prog[end] == '\n':
                         self.line_no += 1
                     end+=1
-
-                self.logger.log_lexical_error(start_line,  self.prog[self.ptr: self.ptr+7] + "...", 'Unclosed comment')
+                if len(self.prog) > self.ptr+7:
+                    self.logger.log_lexical_error(start_line,  self.prog[self.ptr: self.ptr+7] + "...", 'Unclosed comment')
+                else:
+                    self.logger.log_lexical_error(start_line,  self.prog[self.ptr: self.ptr+7], 'Unclosed comment')
                 self.ptr = end + 1
                 return None
 
