@@ -3,27 +3,38 @@
 # Shadi Ghasemitaheri - 96105972
 
 from scanner import Scanner
-
-
+from logger import Logger
+from scanner import keywords
 class Compiler:
 
     def __init__(self):
-        self.symbol_table = {}
+        self.symbol_table = keywords.copy()
         self.scanner = Scanner(self.symbol_table)
         self.prog = ''
-        self.prog_len = 0
+        self.logger = Logger.get_instance()
+
 
     def read_input(self, path):
         with open(path, 'r') as file:
             self.prog = file.read()
-            self.prog_len = len(self.prog)
             self.scanner.set_prog(self.prog)
 
     def compile(self, path):
         self.read_input(path)
-        while self.prog_len != self.scanner.ptr:
-            _ = self.scanner.get_next_token()
-        print(f'{path} compiled successfully!')
+        while True:
+            token = self.scanner.get_next_token()
+            if token and token[0] not in ['COMMENT', 'WHITESPACE']:
+                self.logger.add_token(self.scanner.line_no, *token)
+            if self.scanner.is_finished(self.scanner.ptr):
+                print('Compiled Successfully!')
+                break
+        self.logger.save_tokens()
+        self.logger.save_lexical_errors()
+        self.logger.save_symbol_table(self.symbol_table)
+
+
+
+
 
 
 if __name__ == '__main__':
