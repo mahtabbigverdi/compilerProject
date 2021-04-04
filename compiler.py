@@ -37,4 +37,4 @@ class Compiler:
 
 
 if __name__ == '__main__':
-    Compiler().compile('PA1_sample_programs/T03/input.txt')
+    Compiler().compile('PA1_sample_programs/T01/input.txt')

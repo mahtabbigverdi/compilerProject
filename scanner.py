@@ -1,6 +1,6 @@
-keywords = ['if', 'else', 'void', 'int', 'while', 'break', 'switch', 'default', 'case', 'return', 'for']
 from logger import Logger
-import copy
+
+keywords = ['if', 'else', 'void', 'int', 'while', 'break', 'switch', 'default', 'case', 'return', 'for']
 
 
 class Scanner:
@@ -53,8 +53,6 @@ class Scanner:
                 self.ptr = end + 1
                 return None
 
-
-
         # digit DFA
         elif self.prog[self.ptr].isdigit():
             while self.prog[end].isdigit():
@@ -90,6 +88,10 @@ class Scanner:
             if not self.is_finished(self.ptr + 1) and self.prog[self.ptr + 1] == '=':
                 self.ptr += 2
                 return 'SYMBOL', '=='
+            elif not self.is_finished(self.ptr + 1) and not self.is_valid(self.prog[self.ptr + 1]):
+                self.logger.log_lexical_error(self.line_no, self.prog[self.ptr:self.ptr + 2], 'Invalid input')
+                self.ptr += 2
+                return None
             else:
                 self.ptr += 1
                 return 'SYMBOL', '='
@@ -98,6 +100,10 @@ class Scanner:
             if not self.is_finished(self.ptr + 1) and self.prog[self.ptr + 1] == '/':
                 self.logger.log_lexical_error(self.line_no, '*/', 'Unmatched comment')
                 self.ptr = end + 2
+                return None
+            elif not self.is_finished(self.ptr + 1) and not self.is_valid(self.prog[self.ptr + 1]):
+                self.logger.log_lexical_error(self.line_no, self.prog[self.ptr:self.ptr + 2], 'Invalid input')
+                self.ptr += 2
                 return None
             else:
                 self.ptr += 1
@@ -142,9 +148,6 @@ class Scanner:
             self.logger.log_lexical_error(self.line_no,  self.prog[self.ptr], 'Invalid input')
             self.ptr = end + 1
             return None
-
-
-
 
         ## Whitespace DFA
         elif self.prog[self.ptr] in [' ', '\n', '\t', '\r', '\f', '\v']:

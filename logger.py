@@ -1,5 +1,4 @@
 class Logger:
-
     __instance = None
 
     def __init__(self):
@@ -26,7 +25,6 @@ class Logger:
             self.lexical_errors[line].append((token, err))
         else:
             self.lexical_errors[line] = [(token, err)]
-
 
     def save_lexical_errors(self):
         log = ''
@@ -59,6 +57,7 @@ class Logger:
                 log += f'({token_type}, {lexeme}) '
             log = log[:-1]
             log += '\n'
-        log = log[:-1]
+        if log:
+            log = log[:-1]
         with open('output/tokens.txt', 'w') as file:
             file.write(log)
