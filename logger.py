@@ -1,3 +1,6 @@
+from anytree import RenderTree
+
+
 class Logger:
     __instance = None
 
@@ -6,6 +9,7 @@ class Logger:
             raise Exception('This class is a singleton!')
         self.tokens = {}
         self.lexical_errors = {}
+        self.syntax_errors = {}
         Logger.__instance = self
 
     @staticmethod
@@ -26,6 +30,12 @@ class Logger:
         else:
             self.lexical_errors[line] = [(token, err)]
 
+    def log_syntax_error(self, line, err):
+        if line in self.syntax_errors:
+            self.syntax_errors[line].append(err)
+        else:
+            self.syntax_errors[line] = [err]
+
     def save_lexical_errors(self):
         log = ''
         if self.lexical_errors:
@@ -39,6 +49,18 @@ class Logger:
         else:
             log = 'There is no lexical error.'
         with open('output/lexical_errors.txt', 'w') as file:
+            file.write(log)
+
+    def save_syntax_errors(self):
+        log = ''
+        if self.syntax_errors:
+            for line, error_list in self.syntax_errors.items():
+                for err in error_list:
+                    log += f'#{line} : syntax error, {err}\n'
+            log = log[:-1]
+        else:
+            log = 'There is no syntax error.'
+        with open('output/syntax_errors.txt', 'w') as file:
             file.write(log)
 
     def save_symbol_table(self, symbol_table):
@@ -60,4 +82,11 @@ class Logger:
         if log:
             log = log[:-1]
         with open('output/tokens.txt', 'w') as file:
+            file.write(log)
+
+    def save_parse_tree(self, root):
+        log = ''
+        for pre, fill, node in RenderTree(root):
+            log += '%s%s\n' % (pre, node.name)
+        with open('output/parse_tree.txt', 'w') as file:
             file.write(log)

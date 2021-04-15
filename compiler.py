@@ -2,9 +2,9 @@
 # Mahtab Bigverdi - 96105604
 # Shadi Ghasemitaheri - 96105972
 
-from scanner import Scanner
+from scanner import Scanner, keywords
 from logger import Logger
-from scanner import keywords
+from parser import Parser
 
 
 class Compiler:
@@ -12,6 +12,7 @@ class Compiler:
     def __init__(self):
         self.symbol_table = keywords.copy()
         self.scanner = Scanner(self.symbol_table)
+        self.parser = Parser(self.scanner)
         self.prog = ''
         self.logger = Logger.get_instance()
 
@@ -22,15 +23,20 @@ class Compiler:
 
     def compile(self, path):
         self.read_input(path)
-        while True:
-            token = self.scanner.get_next_token()
-            if token[0] == '$':
-                print('Compiled Successfully!')
-                break
-            self.logger.add_token(self.scanner.line_no, *token)
-        self.logger.save_tokens()
+        root = self.parser.program()
+
         self.logger.save_lexical_errors()
         self.logger.save_symbol_table(self.symbol_table)
+        self.logger.save_parse_tree(root)
+        self.logger.save_syntax_errors()
+
+        # while True:
+        #     token = self.scanner.get_next_token()
+        #     if token[0] == '$':
+        #         print('Compiled Successfully!')
+        #         break
+        #     self.logger.add_token(self.scanner.line_no, *token)
+        # self.logger.save_tokens()
 
 
 if __name__ == '__main__':
