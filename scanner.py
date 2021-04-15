@@ -29,6 +29,10 @@ class Scanner:
         end = self.ptr
         token_type = ''
         lexeme = None
+
+        if self.ptr >= len(self.prog):
+            return '$', '$'
+
         ## ID/Keyword DFA
         if self.prog[self.ptr].isalpha():
             while self.prog[end].isalpha() or self.prog[end].isdigit():
@@ -51,7 +55,7 @@ class Scanner:
             else:
                 self.logger.log_lexical_error(self.line_no, self.prog[self.ptr:end + 1], 'Invalid input')
                 self.ptr = end + 1
-                return None
+                return self.get_next_token()  # return None
 
         # digit DFA
         elif self.prog[self.ptr].isdigit():
@@ -67,7 +71,7 @@ class Scanner:
                 if self.prog[end].isalpha():
                     self.logger.log_lexical_error(self.line_no, self.prog[self.ptr:end + 1], 'Invalid number')
                     self.ptr = end + 1
-                    return None
+                    return self.get_next_token()  # return None
                 lexeme = self.prog[self.ptr:end]
                 token_type = 'NUM'
                 self.ptr = end
@@ -75,7 +79,7 @@ class Scanner:
             else:
                 self.logger.log_lexical_error(self.line_no, self.prog[self.ptr:end + 1], 'Invalid input')
                 self.ptr = end + 1
-                return None
+                return self.get_next_token()  # return None
 
         # Symbol DFA
         elif self.prog[self.ptr] in [',', ';', ':', '[', ']', '(', ')', '{', '}', '+', '-', '<']:
@@ -91,7 +95,7 @@ class Scanner:
             elif not self.is_finished(self.ptr + 1) and not self.is_valid(self.prog[self.ptr + 1]):
                 self.logger.log_lexical_error(self.line_no, self.prog[self.ptr:self.ptr + 2], 'Invalid input')
                 self.ptr += 2
-                return None
+                return self.get_next_token()  # return None
             else:
                 self.ptr += 1
                 return 'SYMBOL', '='
@@ -100,11 +104,11 @@ class Scanner:
             if not self.is_finished(self.ptr + 1) and self.prog[self.ptr + 1] == '/':
                 self.logger.log_lexical_error(self.line_no, '*/', 'Unmatched comment')
                 self.ptr = end + 2
-                return None
+                return self.get_next_token()  # return None
             elif not self.is_finished(self.ptr + 1) and not self.is_valid(self.prog[self.ptr + 1]):
                 self.logger.log_lexical_error(self.line_no, self.prog[self.ptr:self.ptr + 2], 'Invalid input')
                 self.ptr += 2
-                return None
+                return self.get_next_token()  # return None
             else:
                 self.ptr += 1
                 return 'SYMBOL', '*'
@@ -120,11 +124,11 @@ class Scanner:
                     if self.is_finished(end):
                         self.ptr = end
                         ## no need to return lexeme
-                        return 'COMMENT', None
+                        return self.get_next_token()  # return 'COMMENT', None
 
                 self.line_no += 1
                 self.ptr = end + 1
-                return 'COMMENT', None
+                return self.get_next_token()  # return 'COMMENT', None
 
             # /* */  comment
             elif not self.is_finished(self.ptr + 1) and self.prog[self.ptr + 1] == '*':
@@ -133,7 +137,7 @@ class Scanner:
                 while not self.is_finished(end+1):
                     if self.prog[end] == '*' and self.prog[end+1] == '/':
                         self.ptr = end + 2
-                        return 'COMMENT', None
+                        return self.get_next_token()  # return 'COMMENT', None
 
                     if self.prog[end] == '\n':
                         self.line_no += 1
@@ -143,11 +147,11 @@ class Scanner:
                 else:
                     self.logger.log_lexical_error(start_line,  self.prog[self.ptr: self.ptr+7], 'Unclosed comment')
                 self.ptr = end + 1
-                return None
+                return self.get_next_token()  # return None
 
             self.logger.log_lexical_error(self.line_no,  self.prog[self.ptr], 'Invalid input')
             self.ptr = end + 1
-            return None
+            return self.get_next_token()  # return None
 
         ## Whitespace DFA
         elif self.prog[self.ptr] in [' ', '\n', '\t', '\r', '\f', '\v']:
@@ -155,10 +159,10 @@ class Scanner:
             if lexeme == '\n':
                 self.line_no += 1
             self.ptr += 1
-            return 'WHITESPACE', lexeme
+            return self.get_next_token()  # return 'WHITESPACE', lexeme
         else:
             self.logger.log_lexical_error(self.line_no, self.prog[self.ptr], 'Invalid input')
             self.ptr += 1
-            return None
+            return self.get_next_token()  # return None
 
 

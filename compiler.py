@@ -23,14 +23,11 @@ class Compiler:
     def compile(self, path):
         self.read_input(path)
         while True:
-            # print(self.scanner.line_no, self.scanner.ptr)
             token = self.scanner.get_next_token()
-            # print(token)
-            if token and token[0] not in ['COMMENT', 'WHITESPACE']:
-                self.logger.add_token(self.scanner.line_no, *token)
-            if self.scanner.is_finished(self.scanner.ptr):
+            if token[0] == '$':
                 print('Compiled Successfully!')
                 break
+            self.logger.add_token(self.scanner.line_no, *token)
         self.logger.save_tokens()
         self.logger.save_lexical_errors()
         self.logger.save_symbol_table(self.symbol_table)
@@ -38,3 +35,4 @@ class Compiler:
 
 if __name__ == '__main__':
     Compiler().compile('PA1_sample_programs/T01/input.txt')
+    # Compiler().compile('input.txt')
