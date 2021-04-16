@@ -1,12 +1,16 @@
 from logger import Logger
 from predict_sets import first, follow
 from anytree import Node
-
+import traceback
 
 class Parser:
     def __init__(self, scanner):
         self.scanner = scanner
-        self.token = scanner.get_next_token()
+        self.token = None
+
+    def parse(self):
+        self.token = self.scanner.get_next_token()
+        return self.program()
 
     def lookahead(self):
         if self.token[0] in ['ID', 'NUM']:
@@ -15,7 +19,7 @@ class Parser:
 
     def match(self, expected_token, parent):
         if self.lookahead() == expected_token:
-            node = Node('$', parent=parent) if expected_token == '$' else Node('(%s, %s)' % self.token, parent=parent)
+            node = Node('$', parent=parent) if expected_token == '$' else Node('(%s, %s) ' % self.token, parent=parent)
             self.token = self.scanner.get_next_token()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing {expected_token}')
@@ -384,7 +388,7 @@ class Parser:
         if self.lookahead() in first['Simple-expression-zegond']:
             node = Node('Expression', parent=parent)
             self.simple_expression_zegond(node)
-        if self.lookahead() == 'ID':
+        elif self.lookahead() == 'ID':
             node = Node('Expression', parent=parent)
             self.match('ID', node)
             self.b(node)
@@ -415,8 +419,9 @@ class Parser:
             self.b(parent)
 
     def h(self, parent):
-        if self.lookahead() in first['Expression']:
+        if self.lookahead() == '=':
             node = Node('H', parent=parent)
+            self.match('=',  node)
             self.expression(node)
         elif self.lookahead() in first['G'] or self.lookahead() in first['D'] \
                 or self.lookahead() in first['C'] or self.lookahead() in follow['H']:
@@ -557,7 +562,7 @@ class Parser:
     def term_prime(self, parent):
         if self.lookahead() in first['Signed-factor-prime'] or self.lookahead() in first['G'] or\
                 self.lookahead() in follow['Term-prime']:
-            node = Node('Term_prime', parent=parent)
+            node = Node('Term-prime', parent=parent)
             self.signed_factor_prime(node)
             self.g(node)
         else:

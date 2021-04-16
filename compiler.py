@@ -23,7 +23,7 @@ class Compiler:
 
     def compile(self, path):
         self.read_input(path)
-        root = self.parser.program()
+        root = self.parser.parse()
 
         self.logger.save_lexical_errors()
         self.logger.save_symbol_table(self.symbol_table)
@@ -40,5 +40,5 @@ class Compiler:
 
 
 if __name__ == '__main__':
-    Compiler().compile('PA1_sample_programs/T01/input.txt')
+    Compiler().compile('PA2_sample_programs/T1/input.txt')
     # Compiler().compile('input.txt')
