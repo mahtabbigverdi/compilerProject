@@ -94,6 +94,7 @@ class Parser:
             self.match('[', node)
             self.match('NUM', node)
             self.match(']', node)
+            self.match(';', node)
         elif self.lookahead() in follow['Var-declaration-prime']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Var-declaration-prime')
         else:
@@ -176,7 +177,7 @@ class Parser:
             self.param_list(parent)
 
     def param(self, parent):
-        if self.lookahead() == first['Declaration-initial']:
+        if self.lookahead() in first['Declaration-initial']:
             node = Node('Param', parent=parent)
             self.declaration_initial(node)
             self.param_prime(node)

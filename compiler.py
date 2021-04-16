@@ -25,8 +25,8 @@ class Compiler:
         self.read_input(path)
         root = self.parser.parse()
 
-        self.logger.save_lexical_errors()
-        self.logger.save_symbol_table(self.symbol_table)
+        # self.logger.save_lexical_errors()
+        # self.logger.save_symbol_table(self.symbol_table)
         self.logger.save_parse_tree(root)
         self.logger.save_syntax_errors()
 
@@ -40,5 +40,5 @@ class Compiler:
 
 
 if __name__ == '__main__':
-    Compiler().compile('PA2_sample_programs/T1/input.txt')
+    Compiler().compile('PA2_sample_programs/T10/input.txt')
     # Compiler().compile('input.txt')
