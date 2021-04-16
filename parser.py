@@ -1,16 +1,23 @@
 from logger import Logger
 from predict_sets import first, follow
 from anytree import Node
-import traceback
+
 
 class Parser:
     def __init__(self, scanner):
         self.scanner = scanner
         self.token = None
+        self.root = None
 
     def parse(self):
         self.token = self.scanner.get_next_token()
-        return self.program()
+        self.program()
+        self.terminate()
+
+    def terminate(self):
+        Logger.get_instance().save_parse_tree(self.root)
+        Logger.get_instance().save_syntax_errors()
+        exit()
 
     def lookahead(self):
         if self.token[0] in ['ID', 'NUM']:
@@ -25,14 +32,12 @@ class Parser:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing {expected_token}')
 
     def program(self):
-        root = None
         if self.lookahead() in first['Program']:
-            root = Node('Program')
-            self.declaration_list(root)
-            self.match('$', root)  # TODO
+            self.root = Node('Program')
+            self.declaration_list(self.root)
+            self.match('$', self.root)
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
-        return root
 
     def declaration_list(self, parent):
         if self.lookahead() in first['Declaration']:
@@ -66,6 +71,9 @@ class Parser:
             self.match('ID', node)
         elif self.lookahead() in follow['Declaration-initial']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Declaration-initial')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -125,6 +133,9 @@ class Parser:
             self.match('void', node)
         elif self.lookahead() in follow['Type-specifier']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Type-specifier')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -143,6 +154,9 @@ class Parser:
             self.param_list_void_abtar(node)
         elif self.lookahead() in follow['Params']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Params')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -157,6 +171,9 @@ class Parser:
         elif self.lookahead() in follow['Param-list-void-abtar']:
             node = Node('Param-list-void-abtar', parent=parent)
             child = Node('epsilon', parent=node)
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -171,6 +188,9 @@ class Parser:
         elif self.lookahead() in follow['Param-list']:
             node = Node('Param-list', parent=parent)
             child = Node('epsilon', parent=node)
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -183,6 +203,9 @@ class Parser:
             self.param_prime(node)
         elif self.lookahead() in follow['Param']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Param')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -196,6 +219,12 @@ class Parser:
         elif self.lookahead() in follow['Param-prime']:
             node = Node('Param-prime', parent=parent)
             child = Node('epsilon', parent=node)
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -223,6 +252,9 @@ class Parser:
         elif self.lookahead() in follow['Statement-list']:
             node = Node('Statement-list', parent=parent)
             child = Node('epsilon', parent=node)
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -249,6 +281,9 @@ class Parser:
             self.for_stmt(node)
         elif self.lookahead() in follow['Statement']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Statement')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -268,6 +303,9 @@ class Parser:
             self.match(';', node)
         elif self.lookahead() in follow['Expression-stmt']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Expression-stmt')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -285,6 +323,9 @@ class Parser:
             self.statement(node)
         elif self.lookahead() in follow['Selection-stmt']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Selection-stmt')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -300,6 +341,9 @@ class Parser:
             self.statement(node)
         elif self.lookahead() in follow['Iteration-stmt']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Iteration-stmt')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -312,6 +356,9 @@ class Parser:
             self.return_stmt_prime(node)
         elif self.lookahead() in follow['Return-stmt']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Return-stmt')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -327,6 +374,9 @@ class Parser:
             self.match(';', node)
         elif self.lookahead() in follow['Return-stmt-prime']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Return-stmt-prime')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -342,6 +392,9 @@ class Parser:
             self.statement(node)
         elif self.lookahead() in follow['For-stmt']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing For-stmt')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -354,6 +407,9 @@ class Parser:
             self.var_zegond(node)
         elif self.lookahead() in follow['Vars']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Vars')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -368,6 +424,9 @@ class Parser:
         elif self.lookahead() in follow['Var-zegond']:
             node = Node('Var-zegond', parent=parent)
             child = Node('epsilon', parent=node)
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -380,6 +439,9 @@ class Parser:
             self.var_prime(node)
         elif self.lookahead() in follow['Var']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Var')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -395,6 +457,9 @@ class Parser:
             self.b(node)
         elif self.lookahead() in follow['Expression']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Expression')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -414,6 +479,9 @@ class Parser:
         elif self.lookahead() in first['Simple-expression-prime'] or self.lookahead() in follow['B']:
             node = Node('B', parent=parent)
             self.simple_expression_prime(node)
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -430,6 +498,9 @@ class Parser:
             self.g(node)
             self.d(node)
             self.c(node)
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -442,6 +513,9 @@ class Parser:
             self.c(node)
         elif self.lookahead() in follow['Simple-expression-zegond']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Simple-expression-zegond')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -453,6 +527,9 @@ class Parser:
             node = Node('Simple-expression-prime', parent=parent)
             self.additive_expression_prime(node)
             self.c(node)
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -466,6 +543,9 @@ class Parser:
         elif self.lookahead() in follow['C']:
             node = Node('C', parent=parent)
             child = Node('epsilon', parent=node)
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -480,6 +560,9 @@ class Parser:
             self.match('==', node)
         elif self.lookahead() in follow['Relop']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Relop')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -492,6 +575,9 @@ class Parser:
             self.d(node)
         elif self.lookahead() in follow['Additive-expression']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Additive-expression')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -503,6 +589,9 @@ class Parser:
             node = Node('Additive-expression-prime', parent=parent)
             self.term_prime(node)
             self.d(node)
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -515,6 +604,9 @@ class Parser:
             self.d(node)
         elif self.lookahead() in follow['Additive-expression-zegond']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Additive-expression-zegond')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -529,6 +621,9 @@ class Parser:
         elif self.lookahead() in follow['D']:
             node = Node('D', parent=parent)
             child = Node('epsilon', parent=node)
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -543,6 +638,9 @@ class Parser:
             self.match('-', node)
         elif self.lookahead() in follow['Addop']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Addop')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -555,6 +653,9 @@ class Parser:
             self.g(node)
         elif self.lookahead() in follow['Term']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Term')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -566,6 +667,9 @@ class Parser:
             node = Node('Term-prime', parent=parent)
             self.signed_factor_prime(node)
             self.g(node)
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -578,6 +682,9 @@ class Parser:
             self.g(node)
         elif self.lookahead() in follow['Term-zegond']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Term-zegond')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -592,6 +699,9 @@ class Parser:
         elif self.lookahead() in follow['G']:
             node = Node('G', parent=parent)
             child = Node('epsilon', parent=node)
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -611,6 +721,9 @@ class Parser:
             self.factor(node)
         elif self.lookahead() in follow['Signed-factor']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Signed-factor')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -620,6 +733,9 @@ class Parser:
         if self.lookahead() in first['Factor-prime'] or self.lookahead() in follow['Signed-factor-prime']:
             node = Node('Signed-factor-prime', parent=parent)
             self.factor_prime(node)
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -639,6 +755,9 @@ class Parser:
             self.factor_zegond(node)
         elif self.lookahead() in follow['Signed-factor-zegond']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Signed-factor-zegond')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -659,6 +778,9 @@ class Parser:
             self.match('NUM', node)
         elif self.lookahead() in follow['Factor']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Factor')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -673,6 +795,9 @@ class Parser:
         elif self.lookahead() in first['Var-prime'] or self.lookahead() in follow['Var-call-prime']:
             node = Node('Var-call-prime', parent=parent)
             self.var_prime(node)
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -687,6 +812,9 @@ class Parser:
         elif self.lookahead() in follow['Var-prime']:
             node = Node('Var-prime', parent=parent)
             child = Node('epsilon', parent=node)
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -701,6 +829,9 @@ class Parser:
         elif self.lookahead() in follow['Factor-prime']:
             node = Node('Factor-prime', parent=parent)
             child = Node('epsilon', parent=node)
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -717,6 +848,9 @@ class Parser:
             self.match('NUM', node)
         elif self.lookahead() in follow['Factor-zegond']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Factor-zegond')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -729,6 +863,9 @@ class Parser:
         elif self.lookahead() in follow['Args']:
             node = Node('Args', parent=parent)
             child = Node('epsilon', parent=node)
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -741,6 +878,9 @@ class Parser:
             self.arg_list_prime(node)
         elif self.lookahead() in follow['Arg-list']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Arg-list')
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()
@@ -755,6 +895,9 @@ class Parser:
         elif self.lookahead() in follow['Arg-list-prime']:
             node = Node('Arg-list-prime', parent=parent)
             child = Node('epsilon', parent=node)
+        elif self.lookahead() == '$':
+            Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
+            self.terminate()
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
             self.token = self.scanner.get_next_token()

@@ -15,6 +15,7 @@ class Compiler:
         self.parser = Parser(self.scanner)
         self.prog = ''
         self.logger = Logger.get_instance()
+        self.root = None
 
     def read_input(self, path):
         with open(path, 'r') as file:
@@ -23,22 +24,9 @@ class Compiler:
 
     def compile(self, path):
         self.read_input(path)
-        root = self.parser.parse()
-
-        # self.logger.save_lexical_errors()
-        # self.logger.save_symbol_table(self.symbol_table)
-        self.logger.save_parse_tree(root)
-        self.logger.save_syntax_errors()
-
-        # while True:
-        #     token = self.scanner.get_next_token()
-        #     if token[0] == '$':
-        #         print('Compiled Successfully!')
-        #         break
-        #     self.logger.add_token(self.scanner.line_no, *token)
-        # self.logger.save_tokens()
+        self.parser.parse()
 
 
 if __name__ == '__main__':
-    Compiler().compile('PA2_sample_programs/T10/input.txt')
-    # Compiler().compile('input.txt')
+    # Compiler().compile('PA2_sample_programs/T6/input.txt')
+    Compiler().compile('input.txt')
