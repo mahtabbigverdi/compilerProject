@@ -38,6 +38,8 @@ class Parser:
             self.match('$', self.root)
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
+            self.token = self.scanner.get_next_token()
+            self.program()
 
     def declaration_list(self, parent):
         if self.lookahead() in first['Declaration']:
