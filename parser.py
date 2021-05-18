@@ -1,3 +1,4 @@
+from code_generator import CodeGenerator
 from logger import Logger
 from predict_sets import first, follow
 from anytree import Node
@@ -8,6 +9,7 @@ class Parser:
         self.scanner = scanner
         self.token = None
         self.root = None
+        self.code_generator = CodeGenerator()
 
     def parse(self):
         self.token = self.scanner.get_next_token()
@@ -69,7 +71,9 @@ class Parser:
     def declaration_initial(self, parent):
         if self.lookahead() in first['Type-specifier']:
             node = Node('Declaration-initial', parent=parent)
+            self.code_generator.code_gen('ptype', self.token[1])
             self.type_specifier(node)
+            self.code_generator.code_gen('pid', self.token[1])
             self.match('ID', node)
         elif self.lookahead() in follow['Declaration-initial']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Declaration-initial')
@@ -98,12 +102,15 @@ class Parser:
     def var_declaration_prime(self, parent):
         if self.lookahead() == ';':
             node = Node('Var-declaration-prime', parent=parent)
+            self.code_generator.code_gen('pop')
             self.match(';', node)
         elif self.lookahead() == '[':
             node = Node('Var-declaration-prime', parent=parent)
             self.match('[', node)
+            self.code_generator.code_gen('pnum', self.token[1])
             self.match('NUM', node)
             self.match(']', node)
+            self.code_generator.code_gen('save_array')
             self.match(';', node)
         elif self.lookahead() in follow['Var-declaration-prime']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Var-declaration-prime')
@@ -320,9 +327,12 @@ class Parser:
             self.match('(', node)
             self.expression(node)
             self.match(')', node)
+            self.code_generator.code_gen('save')
             self.statement(node)
+            self.code_generator.code_gen('jpf_save')
             self.match('else', node)
             self.statement(node)
+            self.code_generator.code_gen('jp')
         elif self.lookahead() in follow['Selection-stmt']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Selection-stmt')
         elif self.lookahead() == '$':
@@ -337,10 +347,13 @@ class Parser:
         if self.lookahead() == 'while':
             node = Node('Iteration-stmt', parent=parent)
             self.match('while', node)
+            self.code_generator.code_gen('label')
             self.match('(', node)
             self.expression(node)
             self.match(')', node)
+            self.code_generator.code_gen('save')
             self.statement(node)
+            self.code_generator.code_gen('while')
         elif self.lookahead() in follow['Iteration-stmt']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Iteration-stmt')
         elif self.lookahead() == '$':
@@ -455,6 +468,7 @@ class Parser:
             self.simple_expression_zegond(node)
         elif self.lookahead() == 'ID':
             node = Node('Expression', parent=parent)
+            self.code_generator.code_gen('pid', self.token[1])
             self.match('ID', node)
             self.b(node)
         elif self.lookahead() in follow['Expression']:
@@ -472,11 +486,13 @@ class Parser:
             node = Node('B', parent=parent)
             self.match('=', node)
             self.expression(node)
+            self.code_generator.code_gen('assign')
         elif self.lookahead() == '[':
             node = Node('B', parent=parent)
             self.match('[', node)
             self.expression(node)
             self.match(']', node)
+            self.code_generator.code_gen('array_index')
             self.h(node)
         elif self.lookahead() in first['Simple-expression-prime'] or self.lookahead() in follow['B']:
             node = Node('B', parent=parent)
@@ -494,6 +510,7 @@ class Parser:
             node = Node('H', parent=parent)
             self.match('=',  node)
             self.expression(node)
+            self.code_generator.code_gen('assign')
         elif self.lookahead() in first['G'] or self.lookahead() in first['D'] \
                 or self.lookahead() in first['C'] or self.lookahead() in follow['H']:
             node = Node('H', parent=parent)
@@ -540,8 +557,10 @@ class Parser:
     def c(self, parent):
         if self.lookahead() in first['Relop']:
             node = Node('C', parent=parent)
+            self.code_generator.code_gen('poperator', self.token[1])
             self.relop(node)
             self.additive_expression(node)
+            self.code_generator.code_gen('relop')
         elif self.lookahead() in follow['C']:
             node = Node('C', parent=parent)
             child = Node('epsilon', parent=node)
@@ -617,8 +636,10 @@ class Parser:
     def d(self, parent):
         if self.lookahead() in first['Addop']:
             node = Node('D', parent=parent)
+            self.code_generator.code_gen('poperator', self.token[1])
             self.addop(node)
             self.term(node)
+            self.code_generator.code_gen('addop')
             self.d(node)
         elif self.lookahead() in follow['D']:
             node = Node('D', parent=parent)
@@ -697,6 +718,7 @@ class Parser:
             node = Node('G', parent=parent)
             self.match('*', node)
             self.signed_factor(node)
+            self.code_generator.code_gen('mult')
             self.g(node)
         elif self.lookahead() in follow['G']:
             node = Node('G', parent=parent)
@@ -718,6 +740,7 @@ class Parser:
             node = Node('Signed-factor', parent=parent)
             self.match('-', node)
             self.factor(node)
+            self.code_generator.code_gen('neg')
         elif self.lookahead() in first['Factor']:
             node = Node('Signed-factor', parent=parent)
             self.factor(node)
@@ -752,6 +775,7 @@ class Parser:
             node = Node('Signed-factor-zegond', parent=parent)
             self.match('-', node)
             self.factor(node)
+            self.code_generator.code_gen('neg')
         elif self.lookahead() in first['Factor-zegond']:
             node = Node('Signed-factor-zegond', parent=parent)
             self.factor_zegond(node)
@@ -773,10 +797,12 @@ class Parser:
             self.match(')', node)
         elif self.lookahead() == 'ID':
             node = Node('Factor', parent=parent)
+            self.code_generator.code_gen('pid', self.token[1])
             self.match('ID', node)
             self.var_call_prime(node)
         elif self.lookahead() == 'NUM':
             node = Node('Factor', parent=parent)
+            self.code_generator.code_gen('pnum', self.token[1])
             self.match('NUM', node)
         elif self.lookahead() in follow['Factor']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Factor')
@@ -811,6 +837,7 @@ class Parser:
             self.match('[', node)
             self.expression(node)
             self.match(']', node)
+            self.code_generator.code_gen('array_index')
         elif self.lookahead() in follow['Var-prime']:
             node = Node('Var-prime', parent=parent)
             child = Node('epsilon', parent=node)
@@ -828,6 +855,7 @@ class Parser:
             self.match('(', node)
             self.args(node)
             self.match(')', node)
+            self.code_generator.code_gen('output')
         elif self.lookahead() in follow['Factor-prime']:
             node = Node('Factor-prime', parent=parent)
             child = Node('epsilon', parent=node)
@@ -847,6 +875,7 @@ class Parser:
             self.match(')', node)
         elif self.lookahead() == 'NUM':
             node = Node('Factor-zegond', parent=parent)
+            self.code_generator.code_gen('pnum', self.token[1])
             self.match('NUM', node)
         elif self.lookahead() in follow['Factor-zegond']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Factor-zegond')

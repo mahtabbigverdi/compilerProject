@@ -3,4 +3,5 @@
 
 !.gitignore
 !requirements.txt
+!AugmentedGrammer.txt
 !*.py

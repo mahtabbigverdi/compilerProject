@@ -28,5 +28,5 @@ class Compiler:
 
 
 if __name__ == '__main__':
-    # Compiler().compile('PA2_sample_programs/T1/input.txt')
-    Compiler().compile('input.txt')
+    Compiler().compile('PA2_sample_programs/T1/input.txt')
+    # Compiler().compile('input.txt')
