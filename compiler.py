@@ -10,8 +10,7 @@ from parser import Parser
 class Compiler:
 
     def __init__(self):
-        self.symbol_table = keywords.copy()
-        self.scanner = Scanner(self.symbol_table)
+        self.scanner = Scanner()
         self.parser = Parser(self.scanner)
         self.prog = ''
         self.logger = Logger.get_instance()
@@ -28,5 +27,5 @@ class Compiler:
 
 
 if __name__ == '__main__':
-    Compiler().compile('PA2_sample_programs/T1/input.txt')
-    # Compiler().compile('input.txt')
+    # Compiler().compile('PA2_sample_programs/T6/input.txt')
+    Compiler().compile('input.txt')

@@ -17,8 +17,9 @@ class Parser:
         self.terminate()
 
     def terminate(self):
-        Logger.get_instance().save_parse_tree(self.root)
-        Logger.get_instance().save_syntax_errors()
+        # Logger.get_instance().save_parse_tree(self.root)
+        # Logger.get_instance().save_syntax_errors()
+        Logger.get_instance().save_program_block(self.code_generator.PB)
         exit()
 
     def lookahead(self):

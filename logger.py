@@ -87,6 +87,15 @@ class Logger:
     def save_parse_tree(self, root):
         log = ''
         for pre, fill, node in RenderTree(root):
+            # print(root)
             log += '%s%s\n' % (pre, node.name)
         with open('output/parse_tree.txt', 'w') as file:
+            file.write(log)
+
+    def save_program_block(self, PB):
+        log = ''
+        for i, program in enumerate(PB):
+            log += f'{i + 1}\t{program}\n'
+        log = log[:-1]
+        with open('output/output.txt', 'w') as file:
             file.write(log)

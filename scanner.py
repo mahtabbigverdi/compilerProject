@@ -4,9 +4,9 @@ keywords = ['if', 'else', 'void', 'int', 'while', 'break', 'switch', 'default', 
 
 
 class Scanner:
-    def __init__(self, symbol_table):
+    def __init__(self):
         self.prog = ''
-        self.symbol_table = symbol_table
+        # self.symbol_table = symbol_table
         self.ptr = 0
         self.line_no = 1
         self.logger = Logger.get_instance()
@@ -40,16 +40,16 @@ class Scanner:
                 if self.is_finished(end):
                     lexeme = self.prog[self.ptr:end]
                     token_type = 'KEYWORD' if self.is_keyword(lexeme) else 'ID'
-                    if lexeme not in self.symbol_table:
-                        self.symbol_table.append(lexeme)
+                    # if lexeme not in self.symbol_table:
+                    #     self.symbol_table.append(lexeme)
                     self.ptr = end
                     return token_type, lexeme
 
             if self.is_valid(self.prog[end]):
                 lexeme = self.prog[self.ptr:end]
                 token_type = 'KEYWORD' if self.is_keyword(lexeme) else 'ID'
-                if lexeme not in self.symbol_table:
-                    self.symbol_table.append(lexeme)
+                # if lexeme not in self.symbol_table:
+                #     self.symbol_table.append(lexeme)
                 self.ptr = end
                 return token_type, lexeme
             else:

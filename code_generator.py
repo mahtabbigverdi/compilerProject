@@ -1,5 +1,11 @@
 class CodeGenerator:
     def __init__(self):
+        self.symbol_table = {}
+        self.semantic_stack = []
+        self.PB = []
+        self.temp_pointer = 1000 - 4
+        self.data_pointer = 500 - 4
+        self.i = 0
         self.gen_func = {'ptype': self.ptype,
                          'pid': self.pid,
                          'pop': self.pop,
@@ -22,56 +28,122 @@ class CodeGenerator:
     def code_gen(self, action_symbol, arg=None):
         self.gen_func[action_symbol](arg)
 
+    def find_address(self, input):
+        return self.symbol_table[input]['address']
+
+    def get_temp(self):
+        self.temp_pointer += 4
+        return self.temp_pointer
+
     def ptype(self, arg=None):
-        pass
+        self.semantic_stack.append(arg)
+
+    def get_data(self):
+        self.data_pointer += 4
+        return self.data_pointer
 
     def pid(self, arg=None):
-        pass
+        if arg in self.symbol_table:
+            address = self.find_address(arg)
+        else:
+            address = self.get_data()
+            self.symbol_table[arg] = {'address': address, 'type': self.semantic_stack.pop(), 'length': 0}
+
+        self.semantic_stack.append(address)
 
     def pop(self, arg=None):
-        pass
+        self.semantic_stack.pop()
 
     def pnum(self, arg=None):
-        pass
+        self.semantic_stack.append('#' + arg)
 
     def save_array(self, arg=None):
-        pass
+        number = int(self.semantic_stack.pop()[1:])
+        id = self.semantic_stack.pop()
+        self.symbol_table[id]['length'] = number
+        self.data_pointer += 4 * (number - 1)
 
     def save(self, arg=None):
-        pass
+        self.semantic_stack.append(self.i)
+        self.PB.append('')
+        self.i += 1
 
     def jpf_save(self, arg=None):
-        pass
+        self.PB[self.semantic_stack.pop()] = f'(JPF, {self.semantic_stack.pop()}, {self.i + 1}, )'
+        self.semantic_stack.append(self.i)
+        self.i += 1
+        self.PB.append('')
 
     def jp(self, arg=None):
-        pass
+        self.PB[self.semantic_stack.pop()] = f'(JP, {self.i}, , )'
 
     def label(self, arg=None):
-        pass
+        self.semantic_stack.append(self.i)
 
     def iter(self, arg=None):
-        pass
+        self.PB[self.semantic_stack.pop()] = f'(JPF, {self.semantic_stack.pop()}, {self.i + 1}, )'
+        self.PB.append(f'(JP, {self.semantic_stack.pop()}, , )')
+        self.i += 1
 
     def assign(self, arg=None):
-        pass
+        self.PB.append(f'(ASSIGN, {self.semantic_stack.pop()}, {self.semantic_stack.pop()}, )')
+        self.i += 1
 
     def array_index(self, arg=None):
-        pass
+        temp_address = self.get_temp()
+        index = self.semantic_stack.pop()
+        id = self.semantic_stack.pop()
+        self.PB.append(f'(MULT, {index}, #4, {temp_address})')
+        self.PB.append(f'(ADD, #{id}, {temp_address}, {temp_address})')
+        self.semantic_stack.append('@' + str(temp_address))
+        self.i += 2
 
     def poperator(self, arg=None):
-        pass
+        self.semantic_stack.append(arg)
 
     def relop(self, arg=None):
-        pass
+        op2 = self.semantic_stack.pop()
+        operator = self.semantic_stack.pop()
+        op1 = self.semantic_stack.pop()
+
+        temp_address = self.get_temp()
+        if operator == '<':
+            self.PB.append(f'(LT, {op1}, {op2}, {temp_address})')
+        elif operator == '==':
+            self.PB.append(f'(EQ, {op1}, {op2}, {temp_address})')
+        self.i += 1
+        self.semantic_stack.append(temp_address)
 
     def addop(self, arg=None):
-        pass
+        op2 = self.semantic_stack.pop()
+        operator = self.semantic_stack.pop()
+        op1 = self.semantic_stack.pop()
+
+        temp_address = self.get_temp()
+        if operator == '+':
+            self.PB.append(f'(ADD, {op1}, {op2}, {temp_address})')
+        elif operator == '-':
+            self.PB.append(f'(SUB, {op1}, {op2}, {temp_address})')
+        self.i += 1
+        self.semantic_stack.append(temp_address)
 
     def mult(self, arg=None):
-        pass
+        op2 = self.semantic_stack.pop()
+        op1 = self.semantic_stack.pop()
+
+        temp_address = self.get_temp()
+        self.PB.append(f'(MULT, {op1}, {op2}, {temp_address})')
+        self.i += 1
+        self.semantic_stack.append(temp_address)
 
     def neg(self, arg=None):
-        pass
+        op = self.semantic_stack.pop()
+        temp_address = self.get_temp()
+        self.PB.append(f'(SUB, #0, {op}, {temp_address})')
+        self.i += 1
+        self.semantic_stack.append(temp_address)
 
     def output(self, arg=None):
-        pass
+        id = self.semantic_stack.pop()
+        self.PB.append(f'(PRINT, {id}, , )')
+        self.i += 1
