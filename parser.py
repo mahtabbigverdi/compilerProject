@@ -304,6 +304,7 @@ class Parser:
             node = Node('Expression-stmt', parent=parent)
             self.expression(node)
             self.match(';', node)
+            self.code_generator.code_gen('pop')
         elif self.lookahead() == 'break':
             node = Node('Expression-stmt', parent=parent)
             self.match('break', node)

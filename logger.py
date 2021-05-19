@@ -95,7 +95,7 @@ class Logger:
     def save_program_block(self, PB):
         log = ''
         for i, program in enumerate(PB):
-            log += f'{i + 1}\t{program}\n'
+            log += f'{i}\t{program}\n'
         log = log[:-1]
         with open('output/output.txt', 'w') as file:
             file.write(log)

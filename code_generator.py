@@ -45,11 +45,13 @@ class CodeGenerator:
     def pid(self, arg=None):
         if arg in self.symbol_table:
             address = self.find_address(arg)
-        else:
+            self.semantic_stack.append(address)
+        elif arg != 'output':
             address = self.get_data()
             self.symbol_table[arg] = {'address': address, 'type': self.semantic_stack.pop(), 'length': 0}
-
-        self.semantic_stack.append(address)
+            self.PB.append(f'(ASSIGN, #0, {address}, )')
+            self.i += 1
+            self.semantic_stack.append(address)
 
     def pop(self, arg=None):
         self.semantic_stack.pop()
@@ -59,9 +61,13 @@ class CodeGenerator:
 
     def save_array(self, arg=None):
         number = int(self.semantic_stack.pop()[1:])
-        id = self.semantic_stack.pop()
-        self.symbol_table[id]['length'] = number
-        self.data_pointer += 4 * (number - 1)
+        id_address = self.semantic_stack.pop()
+        # id = next((key for key, val in self.symbol_table.items() if val['address'] == id_address), None)
+        # self.symbol_table[id]['length'] = number
+        for i in range(number - 1):
+            address = self.get_data()
+            self.PB.append(f'(ASSIGN, #0, {address}, )')
+            self.i += 1
 
     def save(self, arg=None):
         self.semantic_stack.append(self.i)
@@ -69,7 +75,8 @@ class CodeGenerator:
         self.i += 1
 
     def jpf_save(self, arg=None):
-        self.PB[self.semantic_stack.pop()] = f'(JPF, {self.semantic_stack.pop()}, {self.i + 1}, )'
+        index = self.semantic_stack.pop()
+        self.PB[index] = f'(JPF, {self.semantic_stack.pop()}, {self.i + 1}, )'
         self.semantic_stack.append(self.i)
         self.i += 1
         self.PB.append('')
@@ -81,13 +88,17 @@ class CodeGenerator:
         self.semantic_stack.append(self.i)
 
     def iter(self, arg=None):
-        self.PB[self.semantic_stack.pop()] = f'(JPF, {self.semantic_stack.pop()}, {self.i + 1}, )'
+        index = self.semantic_stack.pop()
+        self.PB[index] = f'(JPF, {self.semantic_stack.pop()}, {self.i + 1}, )'
         self.PB.append(f'(JP, {self.semantic_stack.pop()}, , )')
         self.i += 1
 
     def assign(self, arg=None):
-        self.PB.append(f'(ASSIGN, {self.semantic_stack.pop()}, {self.semantic_stack.pop()}, )')
+        rhs = self.semantic_stack.pop()
+        lhs = self.semantic_stack.pop()
+        self.PB.append(f'(ASSIGN, {rhs}, {lhs}, )')
         self.i += 1
+        self.semantic_stack.append(lhs)
 
     def array_index(self, arg=None):
         temp_address = self.get_temp()
@@ -147,3 +158,4 @@ class CodeGenerator:
         id = self.semantic_stack.pop()
         self.PB.append(f'(PRINT, {id}, , )')
         self.i += 1
+        self.semantic_stack.append(None)
