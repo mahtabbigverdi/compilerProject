@@ -15,15 +15,15 @@
 15. Statement-list -> Statement Statement-list | EPSILON
 16. Statement -> Expression-stmt | Compound-stmt | Selection-stmt | Iteration-stmt | Return-stmt
 | For-stmt
-17. Expression-stmt -> Expression ; #pop | break ; | ;
+17. Expression-stmt -> Expression ; #pop | #break break ; | ;
 18. Selection-stmt -> if ( Expression ) #save Statement #jpf_save else Statement #jp
-19. Iteration-stmt -> while #label ( Expression ) #save Statement #while
+19. Iteration-stmt -> #break_save while #label ( Expression ) #save Statement #while
 20. Return-stmt -> return Return-stmt-prime
 21. Return-stmt-prime -> ; | Expression ;
-22. For-stmt -> for ID = Vars Statement
-23. Vars -> Var Var-zegond
-24. Var-zegond -> , Var Var-zegond | EPSILON
-25. Var -> ID Var-prime
+22. For-stmt -> #break_save for #pid ID = Vars #label #init_for Statement #jpf_for
+23. Vars -> Var #psave_var Var-zegond
+24. Var-zegond -> , Var #save_var Var-zegond | EPSILON #set_for_count
+25. Var -> #pid ID Var-prime
 26. Expression -> Simple-expression-zegond | #pid ID B
 27. B -> = Expression #assign | [ Expression ] #array_index H | Simple-expression-prime
 28. H-> = Expression #assign | G D C

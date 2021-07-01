@@ -307,6 +307,7 @@ class Parser:
             self.code_generator.code_gen('pop')
         elif self.lookahead() == 'break':
             node = Node('Expression-stmt', parent=parent)
+            self.code_generator.code_gen('break')
             self.match('break', node)
             self.match(';', node)
         elif self.lookahead() == ';':
@@ -348,6 +349,7 @@ class Parser:
     def iteration_stmt(self, parent):
         if self.lookahead() == 'while':
             node = Node('Iteration-stmt', parent=parent)
+            self.code_generator.code_gen('break_save')
             self.match('while', node)
             self.code_generator.code_gen('label')
             self.match('(', node)
@@ -402,11 +404,16 @@ class Parser:
     def for_stmt(self, parent):
         if self.lookahead() == 'for':
             node = Node('For-stmt', parent=parent)
+            self.code_generator.code_gen('break_save')
             self.match('for', node)
+            self.code_generator.code_gen('pid', self.token[1])
             self.match('ID', node)
             self.match('=', node)
             self.vars(node)
+            self.code_generator.code_gen('label')
+            self.code_generator.code_gen('init_for')
             self.statement(node)
+            self.code_generator.code_gen('jpf_for')
         elif self.lookahead() in follow['For-stmt']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing For-stmt')
         elif self.lookahead() == '$':
@@ -421,6 +428,7 @@ class Parser:
         if self.lookahead() in first['Var']:
             node = Node('Vars', parent=parent)
             self.var(node)
+            self.code_generator.code_gen('psave_var')
             self.var_zegond(node)
         elif self.lookahead() in follow['Vars']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Vars')
@@ -437,10 +445,12 @@ class Parser:
             node = Node('Var-zegond', parent=parent)
             self.match(',', node)
             self.var(node)
+            self.code_generator.code_gen('save_var')
             self.var_zegond(node)
         elif self.lookahead() in follow['Var-zegond']:
             node = Node('Var-zegond', parent=parent)
             child = Node('epsilon', parent=node)
+            self.code_generator.code_gen('set_for_count')
         elif self.lookahead() == '$':
             Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
             self.terminate()
@@ -452,6 +462,7 @@ class Parser:
     def var(self, parent):
         if self.lookahead() == 'ID':
             node = Node('Var', parent=parent)
+            self.code_generator.code_gen('pid', self.token[1])
             self.match('ID', node)
             self.var_prime(node)
         elif self.lookahead() in follow['Var']:

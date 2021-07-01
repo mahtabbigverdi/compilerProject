@@ -97,5 +97,6 @@ class Logger:
         for i, program in enumerate(PB):
             log += f'{i}\t{program}\n'
         log = log[:-1]
+        log = log.replace('#@', '')
         with open('output/output.txt', 'w') as file:
             file.write(log)

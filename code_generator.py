@@ -2,6 +2,7 @@ class CodeGenerator:
     def __init__(self):
         self.symbol_table = {}
         self.semantic_stack = []
+        self.for_while_state = []
         self.PB = []
         self.temp_pointer = 1000 - 4
         self.data_pointer = 500 - 4
@@ -23,7 +24,14 @@ class CodeGenerator:
                          'addop': self.addop,
                          'mult': self.mult,
                          'neg': self.neg,
-                         'output': self.output}
+                         'output': self.output,
+                         'break': self.break_loop,
+                         'break_save': self.break_save,
+                         'init_for': self.init_for,
+                         'jpf_for': self.jpf_for,
+                         'psave_var': self.psave_var,
+                         'save_var': self.save_var,
+                         'set_for_count': self.set_for_count}
 
     def code_gen(self, action_symbol, arg=None):
         self.gen_func[action_symbol](arg)
@@ -92,6 +100,8 @@ class CodeGenerator:
         self.PB[index] = f'(JPF, {self.semantic_stack.pop()}, {self.i + 1}, )'
         self.PB.append(f'(JP, {self.semantic_stack.pop()}, , )')
         self.i += 1
+        self.PB[self.semantic_stack.pop()] = f'(JP, {self.i}, , )'
+        self.for_while_state.pop()
 
     def assign(self, arg=None):
         rhs = self.semantic_stack.pop()
@@ -159,3 +169,61 @@ class CodeGenerator:
         self.PB.append(f'(PRINT, {id}, , )')
         self.i += 1
         self.semantic_stack.append(None)
+
+    # phase 4
+
+    def break_loop(self, arg=None):
+        self.PB.append(f'(JP, {self.semantic_stack[self.for_while_state[-1]]}, ,)')
+        self.i += 1
+
+    def break_save(self, arg=None):
+        self.PB.append(f'(JP, {self.i + 2}, , )')
+        self.i += 1
+        self.save()
+        self.for_while_state.append(len(self.semantic_stack) - 1)
+
+    def init_for(self, arg=None):
+        self.PB.append(f'(ASSIGN, @{self.semantic_stack[-2]}, {self.semantic_stack[-4]}, )')
+        self.PB.append(f'(ASSIGN, @{self.semantic_stack[-4]}, {self.semantic_stack[-4]}, )')
+        self.i += 2
+
+    def jpf_for(self, arg=None):  # pop 5, fill break_save
+        self.PB.append(f'(ADD, {self.semantic_stack[-2]}, #4, {self.semantic_stack[-2]})')
+        self.PB.append(f'(SUB, {self.semantic_stack[-3]}, #1, {self.semantic_stack[-3]})')
+        t = self.get_temp()
+        self.PB.append(f'(EQ, {self.semantic_stack[-3]}, #0, {t})')
+        self.PB.append(f'(JPF, {t}, {self.semantic_stack[-1]}, )')
+        self.i += 4
+        self.PB[self.semantic_stack[-5]] = f'(JP, {self.i}, , )'
+        self.semantic_stack = self.semantic_stack[:-5]
+        self.for_while_state.pop()
+
+    def psave_var(self, arg=None):
+        t = self.get_temp()
+        self.PB.append(f'(ASSIGN, #{self.semantic_stack[-1]}, {t}, )')
+        self.i += 1
+        self.semantic_stack.pop()
+        self.semantic_stack.append(t)
+        self.semantic_stack.append(1)
+
+    def save_var(self, arg=None):
+        t = self.get_temp()
+        self.PB.append(f'(ASSIGN, #{self.semantic_stack[-1]}, {t}, )')
+        self.i += 1
+        var_count = self.semantic_stack[-2] + 1
+        self.semantic_stack.pop()
+        self.semantic_stack.pop()
+        self.semantic_stack.append(var_count)
+        print('####', self.semantic_stack)
+
+    def set_for_count(self, arg=None):
+        var_count = self.get_temp()
+        self.PB.append(f'(ASSIGN, #{self.semantic_stack[-1]}, {var_count}, )')
+        ptr = self.get_temp()
+        print(self.semantic_stack)
+        self.PB.append(f'(ASSIGN, #{self.semantic_stack[-2]}, {ptr}, )')
+        self.i += 2
+        self.semantic_stack.pop()
+        self.semantic_stack.pop()
+        self.semantic_stack.append(var_count)
+        self.semantic_stack.append(ptr)
