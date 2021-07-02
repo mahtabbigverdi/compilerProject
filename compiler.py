@@ -27,5 +27,6 @@ class Compiler:
 
 
 if __name__ == '__main__':
-    Compiler().compile('PA4_sample_programs/T9/input.txt')
-    # Compiler().compile('input.txt')
+    # Compiler().compile('PA4_sample_programs/T10/input.txt')
+    # Compiler().compile('PA4_sample_programs/Optional Parts/SemanticAnalysis/S1/input.txt')
+    Compiler().compile('input.txt')

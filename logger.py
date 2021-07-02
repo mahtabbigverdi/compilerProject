@@ -10,6 +10,7 @@ class Logger:
         self.tokens = {}
         self.lexical_errors = {}
         self.syntax_errors = {}
+        self.semantic_errors = {}
         Logger.__instance = self
 
     @staticmethod
@@ -35,6 +36,12 @@ class Logger:
             self.syntax_errors[line].append(err)
         else:
             self.syntax_errors[line] = [err]
+
+    def log_semantic_error(self, line, err):
+        if line in self.semantic_errors:
+            self.semantic_errors[line].append(err)
+        else:
+            self.semantic_errors[line] = [err]
 
     def save_lexical_errors(self):
         log = ''
@@ -93,10 +100,25 @@ class Logger:
             file.write(log)
 
     def save_program_block(self, PB):
-        log = ''
-        for i, program in enumerate(PB):
-            log += f'{i}\t{program}\n'
-        log = log[:-1]
-        log = log.replace('#@', '')
+        if self.semantic_errors:
+            log = 'The code has not been generated.'
+        else:
+            log = ''
+            for i, program in enumerate(PB):
+                log += f'{i}\t{program}\n'
+            log = log[:-1]
+            log = log.replace('#@', '')
         with open('output/output.txt', 'w') as file:
+            file.write(log)
+
+    def save_semantic_errors(self):
+        log = ''
+        if self.semantic_errors:
+            for line, error_list in self.semantic_errors.items():
+                for err in error_list:
+                    log += f'#{line} : Semantic Error! {err}\n'
+            log = log[:-1]
+        else:
+            log = 'There is no semantic errors.'
+        with open('output/semantic_errors.txt', 'w') as file:
             file.write(log)

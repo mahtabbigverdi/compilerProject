@@ -27,7 +27,6 @@ class SymbolTable():
         elif (input, None) in self.symbol_dict:
             return self.symbol_dict[(input, None)][attr]
         else:
-            raise ValueError('not found')
-            # return None
+            return None
 
 

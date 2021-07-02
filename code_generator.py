@@ -1,8 +1,11 @@
+from logger import Logger
 from symbol_table import SymbolTable
 
 
 class CodeGenerator:
-    def __init__(self):
+    def __init__(self, scanner):
+        self.scanner = scanner
+        self.semantic_errors = []
         self.symbol_table = SymbolTable()
         self.semantic_stack = []
         self.for_while_state = []
@@ -47,7 +50,8 @@ class CodeGenerator:
                          'return': self.return_func,
                          'start_call': self.start_call,
                          'end_call': self.end_call,
-                         'finished': self.finished}
+                         'finished': self.finished,
+                         'type_check': self.type_check}
 
     def code_gen(self, action_symbol, arg=None):
         self.gen_func[action_symbol](arg)
@@ -76,6 +80,9 @@ class CodeGenerator:
 
     def pid(self, arg=None):
         address = self.find_address(arg)
+        if address is None:
+            Logger.get_instance().log_semantic_error(self.scanner.line_no, f"'{arg}' is not defined.")
+            address = 0
         self.semantic_stack.append(address)
 
     def pop(self, arg=None):
@@ -86,6 +93,7 @@ class CodeGenerator:
 
     def save_array(self, arg=None):
         number = int(self.semantic_stack.pop()[1:])
+        self.type_check()
         id_address = self.semantic_stack.pop()
         self.symbol_table.add_attr(id_address, self.current_scope, {'kind': 'array', 'length': number})
         for i in range(number - 1):
@@ -147,7 +155,7 @@ class CodeGenerator:
         op2 = self.semantic_stack.pop()
         operator = self.semantic_stack.pop()
         op1 = self.semantic_stack.pop()
-
+        self.operand_check(op1, op2)
         temp_address = self.get_temp()
         if operator == '<':
             self.PB.append(f'(LT, {op1}, {op2}, {temp_address})')
@@ -160,7 +168,7 @@ class CodeGenerator:
         op2 = self.semantic_stack.pop()
         operator = self.semantic_stack.pop()
         op1 = self.semantic_stack.pop()
-
+        self.operand_check(op1, op2)
         temp_address = self.get_temp()
         if operator == '+':
             self.PB.append(f'(ADD, {op1}, {op2}, {temp_address})')
@@ -172,7 +180,7 @@ class CodeGenerator:
     def mult(self, arg=None):
         op2 = self.semantic_stack.pop()
         op1 = self.semantic_stack.pop()
-
+        self.operand_check(op1, op2)
         temp_address = self.get_temp()
         self.PB.append(f'(MULT, {op1}, {op2}, {temp_address})')
         self.i += 1
@@ -180,6 +188,8 @@ class CodeGenerator:
 
     def neg(self, arg=None):
         op = self.semantic_stack.pop()
+        if self.get_type(op) != 'int':
+            Logger.get_instance().log_semantic_error(self.scanner.line_no, f"Type mismatch in operands, Got array instead of int.")
         temp_address = self.get_temp()
         self.PB.append(f'(SUB, #0, {op}, {temp_address})')
         self.i += 1
@@ -193,8 +203,11 @@ class CodeGenerator:
     # phase 4
 
     def break_loop(self, arg=None):
-        self.PB.append(f'(JP, {self.semantic_stack[self.for_while_state[-1]]}, ,)')
-        self.i += 1
+        if self.for_while_state:
+            self.PB.append(f'(JP, {self.semantic_stack[self.for_while_state[-1]]}, ,)')
+            self.i += 1
+        else:
+            Logger.get_instance().log_semantic_error(self.scanner.line_no, f"No 'while' or 'for' found for 'break'.")
 
     def break_save(self, arg=None):
         self.PB.append(f'(JP, {self.i + 2}, , )')
@@ -312,15 +325,28 @@ class CodeGenerator:
             self.output(args[0])
         else:
             params = self.symbol_table.get_ordered_params(self.symbol_table.get_id_from_address(function_address))
-            print(function_name, params)
-            print(args)
-            for i in range(len(params)):
+            # number matching
+            if len(params) != len(args):
+                Logger.get_instance().log_semantic_error(self.scanner.line_no, f"Mismatch in numbers of arguments of '{function_name}'.")
+
+            for i in range(min(len(params), len(args))):
+                if (isinstance(args[i], int) and args[i] >= 1000) or '#' in str(args[i]) or '@' in str(args[i]):
+                    arg_name = ''
+                    arg_kind = 'var'
+                else:
+                    arg_name = self.symbol_table.get_id_from_address(args[i])
+                    arg_kind = self.symbol_table.get_attr(arg_name, self.current_scope, 'kind')
                 if params[i]['kind'] == 'parameter':
+                    if arg_kind not in ['var', 'parameter']:
+                        Logger.get_instance().log_semantic_error(self.scanner.line_no, f"Mismatch in type of argument {i + 1} of '{function_name}'. Expected 'int' but got 'array' instead.")
                     self.PB.append(f'(ASSIGN, {args[i]}, {params[i]["address"]}, )')
                 else:
+                    if arg_kind not in ['array', 'param_array']:
+                        Logger.get_instance().log_semantic_error(self.scanner.line_no, f"Mismatch in type of argument {i + 1} of '{function_name}'. Expected 'array' but got 'int' instead.")
                     # self.PB.append(f'(ASSIGN, #{args[i]}, {params[i]["address"]}, )')
-                    arr_len = self.symbol_table.get_attr(self.symbol_table.get_id_from_address(args[i]), self.current_scope, 'length')
-                    self.PB.append(f'(ASSIGN, {args[i] + arr_len * 4}, {params[i]["address"]}, )')
+                    if arg_name != '':
+                        arr_len = self.symbol_table.get_attr(arg_name, self.current_scope, 'length')
+                        self.PB.append(f'(ASSIGN, {args[i] + arr_len * 4}, {params[i]["address"]}, )')
 
                 self.i += 1
             start_address = self.symbol_table.get_attr(self.symbol_table.get_id_from_address(function_address), None,
@@ -339,3 +365,29 @@ class CodeGenerator:
         return_addr = self.symbol_table.get_attr('main', None, 'return_address')
         self.PB[self.main_start] = f'(ASSIGN, #{self.i}, {return_addr}, )'
 
+    def type_check(self, arg=None):
+        id = self.symbol_table.get_id_from_address(self.semantic_stack[-1])
+        t = self.symbol_table.get_attr(id, self.current_scope, 'type')
+        if t == 'void':
+            Logger.get_instance().log_semantic_error(self.scanner.line_no, f"Illegal type of void for '{id}'")
+
+    def operand_check(self, op1, op2):
+        type_op1 = self.get_type(op1)
+        type_op2 = self.get_type(op2)
+        if type_op1 != type_op2:
+            Logger.get_instance().log_semantic_error(self.scanner.line_no, f"Type mismatch in operands, Got array instead of int.")
+
+    def get_type(self, op):
+        if isinstance(op, int) and op >= 1000:
+            return 'int'
+        elif '#' in str(op):
+            return 'int'
+        elif '@' in str(op):
+            return 'int'
+        else:
+            op_name = self.symbol_table.get_id_from_address(op)
+            op_type = self.symbol_table.get_attr(op_name, self.current_scope, 'kind')
+            if op_type in ['array', 'param_array']:
+                return 'array'
+            else:
+                return 'int'

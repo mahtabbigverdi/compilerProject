@@ -9,7 +9,7 @@ class Parser:
         self.scanner = scanner
         self.token = None
         self.root = None
-        self.code_generator = CodeGenerator()
+        self.code_generator = CodeGenerator(self.scanner)
 
     def parse(self):
         self.token = self.scanner.get_next_token()
@@ -20,6 +20,7 @@ class Parser:
         # Logger.get_instance().save_parse_tree(self.root)
         # Logger.get_instance().save_syntax_errors()
         Logger.get_instance().save_program_block(self.code_generator.PB)
+        Logger.get_instance().save_semantic_errors()
         exit()
 
     def lookahead(self):
@@ -104,6 +105,7 @@ class Parser:
     def var_declaration_prime(self, parent):
         if self.lookahead() == ';':
             node = Node('Var-declaration-prime', parent=parent)
+            self.code_generator.code_gen('type_check')
             self.code_generator.code_gen('pop')
             self.match(';', node)
         elif self.lookahead() == '[':
