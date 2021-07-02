@@ -1,16 +1,16 @@
 1. Program -> Declaration-list $
 2. Declaration-list -> Declaration Declaration-list | EPSILON
 3. Declaration -> Declaration-initial Declaration-prime
-4. Declaration-initial -> #ptype Type-specifier #pid ID
+4. Declaration-initial -> #ptype Type-specifier #declare ID
 5. Declaration-prime -> Fun-declaration-prime | Var-declaration-prime
 6. Var-declaration-prime -> #pop; | [#pnum NUM ] #save_array;
-7. Fun-declaration-prime -> ( Params ) Compound-stmt
+7. Fun-declaration-prime -> #start_func ( Params ) #update_func  Compound-stmt #end_func
 8. Type-specifier -> int | void
-9. Params -> int ID Param-prime Param-list | void Param-list-void-abtar
+9. Params -> #ptype int #declare ID Param-prime Param-list | void Param-list-void-abtar
 10. Param-list-void-abtar -> ID Param-prime Param-list | EPSILON
 11. Param-list -> , Param Param-list | EPSILON
 12. Param -> Declaration-initial Param-prime
-13. Param-prime -> [ ] | EPSILON
+13. Param-prime -> [ ] #param_array | EPSILON #parameter
 14. Compound-stmt -> { Declaration-list Statement-list }
 15. Statement-list -> Statement Statement-list | EPSILON
 16. Statement -> Expression-stmt | Compound-stmt | Selection-stmt | Iteration-stmt | Return-stmt
@@ -18,8 +18,8 @@
 17. Expression-stmt -> Expression ; #pop | #break break ; | ;
 18. Selection-stmt -> if ( Expression ) #save Statement #jpf_save else Statement #jp
 19. Iteration-stmt -> #break_save while #label ( Expression ) #save Statement #while
-20. Return-stmt -> return Return-stmt-prime
-21. Return-stmt-prime -> ; | Expression ;
+20. Return-stmt -> return Return-stmt-prime #return
+21. Return-stmt-prime -> #pnum ; | Expression ;
 22. For-stmt -> #break_save for #pid ID = Vars #label #init_for Statement #jpf_for
 23. Vars -> Var #psave_var Var-zegond
 24. Var-zegond -> , Var #save_var Var-zegond | EPSILON #set_for_count
@@ -44,9 +44,9 @@
 43. Signed-factor-prime -> Factor-prime
 44. Signed-factor-zegond -> + Factor | - Factor #neg | Factor-zegond
 45. Factor -> ( Expression ) | #pid ID Var-call-prime | #pnum  NUM 
-46. Var-call-prime -> ( Args ) | Var-prime
+46. Var-call-prime -> #start_call ( Args ) #end_call| Var-prime
 47. Var-prime -> [ Expression ] #array_index | EPSILON
-48. Factor-prime -> ( Args ) #output | EPSILON
+48. Factor-prime -> #start_call ( Args )  #end_call| EPSILON
 49. Factor-zegond -> ( Expression ) | #pnum NUM
 50. Args -> Arg-list | EPSILON
 51. Arg-list -> Expression Arg-list-prime

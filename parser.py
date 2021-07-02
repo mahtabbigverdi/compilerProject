@@ -74,7 +74,7 @@ class Parser:
             node = Node('Declaration-initial', parent=parent)
             self.code_generator.code_gen('ptype', self.token[1])
             self.type_specifier(node)
-            self.code_generator.code_gen('pid', self.token[1])
+            self.code_generator.code_gen('declare', self.token[1])
             self.match('ID', node)
         elif self.lookahead() in follow['Declaration-initial']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Declaration-initial')
@@ -123,10 +123,13 @@ class Parser:
     def fun_declaration_prime(self, parent):
         if self.lookahead() == '(':
             node = Node('Fun-declaration-prime', parent=parent)
+            self.code_generator.code_gen('start_func')
             self.match('(', node)
             self.params(node)
             self.match(')', node)
+            self.code_generator.code_gen('update_func')
             self.compound_stmt(node)
+            self.code_generator.code_gen('end_func')
         elif self.lookahead() in follow['Fun-declaration-prime']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Fun-declaration-prime')
         else:
@@ -154,7 +157,9 @@ class Parser:
     def params(self, parent):
         if self.lookahead() == 'int':
             node = Node('Params', parent=parent)
+            self.code_generator.code_gen('ptype',self.token[1])
             self.match('int', node)
+            self.code_generator.code_gen('declare', self.token[1])
             self.match('ID', node)
             self.param_prime(node)
             self.param_list(node)
@@ -226,9 +231,11 @@ class Parser:
             node = Node('Param-prime', parent=parent)
             self.match('[', node)
             self.match(']', node)
+            self.code_generator.code_gen('param_array')
         elif self.lookahead() in follow['Param-prime']:
             node = Node('Param-prime', parent=parent)
             child = Node('epsilon', parent=node)
+            self.code_generator.code_gen('paramater')
         elif self.lookahead() == '$':
             Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
             self.terminate()
@@ -373,6 +380,7 @@ class Parser:
             node = Node('Return-stmt', parent=parent)
             self.match('return', node)
             self.return_stmt_prime(node)
+            self.code_generator.code_gen('return')
         elif self.lookahead() in follow['Return-stmt']:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'missing Return-stmt')
         elif self.lookahead() == '$':
@@ -386,6 +394,7 @@ class Parser:
     def return_stmt_prime(self, parent):
         if self.lookahead() == ';':
             node = Node('Return-stmt-prime', parent=parent)
+            self.code_generator.code_gen('pnum', '0')
             self.match(';', node)
         elif self.lookahead() in first['Expression']:
             node = Node('Return-stmt-prime', parent=parent)
@@ -830,9 +839,11 @@ class Parser:
     def var_call_prime(self, parent):
         if self.lookahead() == '(':
             node = Node('Var-call-prime', parent=parent)
+            self.code_generator.code_gen('start_call')
             self.match('(', node)
             self.args(node)
             self.match(')', node)
+            self.code_generator.code_gen('end_call')
         elif self.lookahead() in first['Var-prime'] or self.lookahead() in follow['Var-call-prime']:
             node = Node('Var-call-prime', parent=parent)
             self.var_prime(node)
@@ -865,10 +876,11 @@ class Parser:
     def factor_prime(self, parent):
         if self.lookahead() == '(':
             node = Node('Factor-prime', parent=parent)
+            self.code_generator.code_gen('start_call')
             self.match('(', node)
             self.args(node)
             self.match(')', node)
-            self.code_generator.code_gen('output')
+            self.code_generator.code_gen('end_call')
         elif self.lookahead() in follow['Factor-prime']:
             node = Node('Factor-prime', parent=parent)
             child = Node('epsilon', parent=node)
