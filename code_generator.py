@@ -10,8 +10,11 @@ class CodeGenerator:
         self.temp_pointer = 1000 - 4
         self.data_pointer = 500 - 4
         self.i = 0
+        self.global_finished = None
+        self.main_start = 0
         self.current_scope = None
         self.gen_func = {'ptype': self.ptype,
+                         'declare': self.declare,
                          'pid': self.pid,
                          'pop': self.pop,
                          'pnum': self.pnum,
@@ -43,7 +46,8 @@ class CodeGenerator:
                          'end_func': self.end_func,
                          'return': self.return_func,
                          'start_call': self.start_call,
-                         'end_call': self.end_call}
+                         'end_call': self.end_call,
+                         'finished': self.finished}
 
     def code_gen(self, action_symbol, arg=None):
         self.gen_func[action_symbol](arg)
@@ -70,19 +74,9 @@ class CodeGenerator:
         self.i += 1
         self.semantic_stack.append(address)
 
-    def start_func(self, arg=None):
-        self.current_scope = self.symbol_table.get_id_from_address(self.semantic_stack[-1])
-        self.semantic_stack.append('function started')
-        return_value = self.get_temp()
-        return_address = self.get_temp()
-        self.symbol_table.add_attr(self.semantic_stack[-1], None,
-                                   {'kind': 'func', 'return_value': return_value, 'return_address': return_address,
-                                    'start_address': self.i})
-
     def pid(self, arg=None):
         address = self.find_address(arg)
         self.semantic_stack.append(address)
-        # elif arg != 'output':
 
     def pop(self, arg=None):
         self.semantic_stack.pop()
@@ -240,13 +234,11 @@ class CodeGenerator:
         self.semantic_stack.pop()
         self.semantic_stack.pop()
         self.semantic_stack.append(var_count)
-        print('####', self.semantic_stack)
 
     def set_for_count(self, arg=None):
         var_count = self.get_temp()
         self.PB.append(f'(ASSIGN, #{self.semantic_stack[-1]}, {var_count}, )')
         ptr = self.get_temp()
-        print(self.semantic_stack)
         self.PB.append(f'(ASSIGN, #{self.semantic_stack[-2]}, {ptr}, )')
         self.i += 2
         self.semantic_stack.pop()
@@ -256,18 +248,36 @@ class CodeGenerator:
 
     def parameter(self, arg=None):
         id_address = self.semantic_stack.pop()
-        self.symbol_table.add_attr(id_address, self.current_scope, {'kind': 'param'})
+        self.symbol_table.add_attr(id_address, self.current_scope, {'kind': 'parameter'})
 
     def param_array(self, arg=None):
         id_address = self.semantic_stack.pop()
         self.symbol_table.add_attr(id_address, self.current_scope, {'kind': 'param_array', 'length': 0})
+
+    def start_func(self, arg=None):
+        if self.global_finished is None:
+            self.global_finished = self.i
+            self.PB.append('')
+            self.i += 1
+        address = self.semantic_stack[-1]
+        self.current_scope = self.symbol_table.get_id_from_address(address)
+        if self.current_scope == 'main':
+            self.PB[self.global_finished] = f'(JP, {self.i}, , )'
+            self.PB.append('')
+            self.main_start = self.i
+            self.i += 1
+        self.semantic_stack.append('function started')
+        return_value = self.get_temp()
+        return_address = self.get_temp()
+        self.symbol_table.add_attr(address, None,
+                                   {'kind': 'func', 'return_value': return_value, 'return_address': return_address})
 
     def update_func(self, arg=None):
         length = len(self.symbol_table.get_ordered_params(self.current_scope))
         while self.semantic_stack.pop() != 'function started':
             continue
         func_addr = self.semantic_stack.pop()
-        self.symbol_table.add_attr(func_addr, None, {'length': length})
+        self.symbol_table.add_attr(func_addr, None, {'length': length, 'start_address': self.i})
 
     def end_func(self, arg=None):
         return_value = self.symbol_table.get_attr(self.current_scope, None, 'return_value')
@@ -302,13 +312,30 @@ class CodeGenerator:
             self.output(args[0])
         else:
             params = self.symbol_table.get_ordered_params(self.symbol_table.get_id_from_address(function_address))
+            print(function_name, params)
+            print(args)
             for i in range(len(params)):
                 if params[i]['kind'] == 'parameter':
                     self.PB.append(f'(ASSIGN, {args[i]}, {params[i]["address"]}, )')
                 else:
-                    self.PB.append(f'(ASSIGN, #{args[i]}, {params[i]["address"]}, )')
+                    # self.PB.append(f'(ASSIGN, #{args[i]}, {params[i]["address"]}, )')
+                    arr_len = self.symbol_table.get_attr(self.symbol_table.get_id_from_address(args[i]), self.current_scope, 'length')
+                    self.PB.append(f'(ASSIGN, {args[i] + arr_len * 4}, {params[i]["address"]}, )')
+
                 self.i += 1
             start_address = self.symbol_table.get_attr(self.symbol_table.get_id_from_address(function_address), None,
                                                        'start_address')
+            return_addr = self.symbol_table.get_attr(function_name, None, 'return_address')
+            return_value = self.symbol_table.get_attr(function_name, None, 'return_value')
+            self.PB.append(f'(ASSIGN, #{self.i + 2}, {return_addr}, )')
             self.PB.append(f'(JP, {start_address}, , )')
-            self.i += 1
+            # store return value in temp and push to stack
+            temp_value = self.get_temp()
+            self.PB.append(f'(ASSIGN, {return_value}, {temp_value}, )')
+            self.semantic_stack.append(temp_value)
+            self.i += 3
+
+    def finished(self, arg=None):
+        return_addr = self.symbol_table.get_attr('main', None, 'return_address')
+        self.PB[self.main_start] = f'(ASSIGN, #{self.i}, {return_addr}, )'
+

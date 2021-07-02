@@ -1,4 +1,4 @@
-1. Program -> Declaration-list $
+1. Program -> Declaration-list #finished $
 2. Declaration-list -> Declaration Declaration-list | EPSILON
 3. Declaration -> Declaration-initial Declaration-prime
 4. Declaration-initial -> #ptype Type-specifier #declare ID

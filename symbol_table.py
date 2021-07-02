@@ -6,12 +6,7 @@ class SymbolTable():
         self.symbol_dict[(input, current_scope)] = dictionary
 
     def find_address(self, input, current_scope):
-        if (input, current_scope) in self.symbol_dict:
-            return self.symbol_dict[(input, current_scope)]['address']
-        elif (input, None) in self.symbol_dict:
-            return self.symbol_dict[(input, None)]['address']
-        else:
-            return None
+        return self.get_attr(input, current_scope, 'address')
 
     def get_id_from_address(self, id_address):
         return next((key for key, val in self.symbol_dict.items() if val['address'] == id_address), None)[0]
@@ -22,11 +17,17 @@ class SymbolTable():
     def get_ordered_params(self, function_name):
         params = []
         for k, v in self.symbol_dict.items():
-            if k[1] == function_name:
+            if k[1] == function_name and v['kind'] in ['parameter', 'param_array']:
                 params.append(v)
         return params
 
     def get_attr(self, input, current_scope, attr):
-        return self.symbol_dict[(input, current_scope)][attr]
+        if (input, current_scope) in self.symbol_dict:
+            return self.symbol_dict[(input, current_scope)][attr]
+        elif (input, None) in self.symbol_dict:
+            return self.symbol_dict[(input, None)][attr]
+        else:
+            raise ValueError('not found')
+            # return None
 
 

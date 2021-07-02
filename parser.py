@@ -38,6 +38,7 @@ class Parser:
         if self.lookahead() in first['Program']:
             self.root = Node('Program')
             self.declaration_list(self.root)
+            self.code_generator.code_gen('finished')
             self.match('$', self.root)
         else:
             Logger.get_instance().log_syntax_error(self.scanner.line_no, f'illegal {self.lookahead()}')
@@ -235,7 +236,7 @@ class Parser:
         elif self.lookahead() in follow['Param-prime']:
             node = Node('Param-prime', parent=parent)
             child = Node('epsilon', parent=node)
-            self.code_generator.code_gen('paramater')
+            self.code_generator.code_gen('parameter')
         elif self.lookahead() == '$':
             Logger.get_instance().log_syntax_error(self.scanner.line_no, 'unexpected EOF')
             self.terminate()
